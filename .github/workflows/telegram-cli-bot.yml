@@ -20,14 +20,13 @@ jobs:
         sudo apt-get install -y openssh-server
         sudo service ssh start
 
-    - name: Configure SSH Access
+    - name: Configure SSH Access for runner user
       env:
-        SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
         SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
       run: |
-        echo "${SSH_USERNAME}:${SSH_PASSWORD}" | sudo chpasswd
-        sudo mkdir -p /home/${SSH_USERNAME}/.ssh
-        sudo chown -R ${SSH_USERNAME}:${SSH_USERNAME} /home/${SSH_USERNAME}/.ssh
+        echo "runner:${SSH_PASSWORD}" | sudo chpasswd
+        sudo mkdir -p /home/runner/.ssh
+        sudo chown -R runner:runner /home/runner/.ssh
 
     - name: Install ngrok
       run: |
