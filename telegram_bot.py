@@ -23,11 +23,16 @@ def send_message(chat_id, text):
 def handle_message(message):
     chat_id = message['chat']['id']
     user_id = message['from']['id']
-    text = message['text']
-
+    
     if user_id not in ALLOWED_USER_IDS:
         send_message(chat_id, "You are not authorized to use this bot.")
         return
+
+    if 'text' not in message:
+        send_message(chat_id, "Please send a text message with a command.")
+        return
+
+    text = message['text']
 
     try:
         result = subprocess.run(text, shell=True, check=True, capture_output=True, text=True, timeout=60)
@@ -43,18 +48,22 @@ def handle_message(message):
     except Exception as e:
         send_message(chat_id, f"An error occurred: {str(e)[:4096]}")
 
+# ... rest of your code ...
+
 def main():
     offset = 0
     start_time = time.time()
     max_runtime = 270  # 4.5 minutes (to stay within GitHub Actions 5 minute limit)
 
     while time.time() - start_time < max_runtime:
-        updates = get_updates(offset)
-        for update in updates.get('result', []):
-            offset = update['update_id'] + 1
-            if 'message' in update:
-                handle_message(update['message'])
-
+        try:
+            updates = get_updates(offset)
+            for update in updates.get('result', []):
+                offset = update['update_id'] + 1
+                if 'message' in update:
+                    handle_message(update['message'])
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
         time.sleep(1)
 
 if __name__ == '__main__':
