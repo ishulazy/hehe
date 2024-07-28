@@ -1,29 +1,51 @@
-name: Telegram CLI Bot
+name: SSH Access Workflow
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'  # Run every 5 minutes
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  run-bot:
+  ssh-access:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
-    - name: Install dependencies
+    - name: Install OpenSSH Server
       run: |
-        python -m pip install --upgrade pip
-        pip install pyTelegramBotAPI requests
+        sudo apt-get update
+        sudo apt-get install -y openssh-server
+        sudo service ssh start
 
-    - name: Run Telegram bot
+    - name: Configure SSH Access
       env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        ALLOWED_USER_IDS: ${{ secrets.ALLOWED_USER_IDS }}
-      run: python telegram_bot.py
+        SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+        SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        echo "${SSH_USERNAME}:${SSH_PASSWORD}" | sudo chpasswd
+        sudo mkdir -p /home/${SSH_USERNAME}/.ssh
+        sudo chown -R ${SSH_USERNAME}:${SSH_USERNAME} /home/${SSH_USERNAME}/.ssh
+
+    - name: Install ngrok
+      run: |
+        curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt-get update && sudo apt-get install ngrok
+
+    - name: Start ngrok
+      env:
+        NGROK_TOKEN: ${{ secrets.NGROK_TOKEN }}
+      run: |
+        ngrok config add-authtoken ${NGROK_TOKEN}
+        nohup ngrok tcp 22 &
+
+    - name: Keep Container Alive and Print ngrok URL
+      run: |
+        while true; do
+          ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r .tunnels[0].public_url)
+          echo "ngrok URL: ${ngrok_url}"
+          sleep 60
+        done
