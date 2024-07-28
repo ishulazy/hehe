@@ -46,5 +46,8 @@ jobs:
         while true; do
           ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r .tunnels[0].public_url | sed 's/tcp:\/\///')
           echo "ngrok URL: ${ngrok_url}"
+          host=$(echo ${ngrok_url} | cut -d':' -f1)
+          port=$(echo ${ngrok_url} | cut -d':' -f2)
+          echo "Use this command to SSH: ssh -p ${port} runner@${host}"
           sleep 60
         done
