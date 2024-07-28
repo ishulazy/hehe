@@ -29,6 +29,9 @@ jobs:
         sudo mkdir -p /home/runner/.ssh
         sudo chown -R runner:runner /home/runner/.ssh
 
+    - name: Install jq
+      run: sudo apt-get install -y jq
+
     - name: Install ngrok
       run: |
         curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
@@ -45,10 +48,14 @@ jobs:
     - name: Keep Container Alive and Print ngrok URL
       run: |
         while true; do
-          ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' | sed 's/tcp:\/\///')
-          echo "ngrok URL: ${ngrok_url}"
-          host=$(echo ${ngrok_url} | cut -d':' -f1)
-          port=$(echo ${ngrok_url} | cut -d':' -f2)
-          echo "Use this command to SSH: ssh -p ${port} runner@${host}"
+          ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' | sed 's/tcp:\/\///') || true
+          if [ -n "$ngrok_url" ]; then
+            echo "ngrok URL: ${ngrok_url}"
+            host=$(echo ${ngrok_url} | cut -d':' -f1)
+            port=$(echo ${ngrok_url} | cut -d':' -f2)
+            echo "Use this command to SSH: ssh -p ${port} runner@${host}"
+          else
+            echo "ngrok URL not found. Retrying..."
+          fi
           sleep 60
         done
