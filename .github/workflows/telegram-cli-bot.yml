@@ -19,6 +19,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y openssh-server
         sudo service ssh start
+        sudo ufw allow OpenSSH
 
     - name: Configure SSH Access for runner user
       env:
@@ -39,12 +40,12 @@ jobs:
         NGROK_TOKEN: ${{ secrets.NGROK_TOKEN }}
       run: |
         ngrok config add-authtoken ${NGROK_TOKEN}
-        nohup ngrok tcp 22 &
+        nohup ngrok tcp 22 --log=stdout > ngrok.log &
 
     - name: Keep Container Alive and Print ngrok URL
       run: |
         while true; do
-          ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r .tunnels[0].public_url | sed 's/tcp:\/\///')
+          ngrok_url=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' | sed 's/tcp:\/\///')
           echo "ngrok URL: ${ngrok_url}"
           host=$(echo ${ngrok_url} | cut -d':' -f1)
           port=$(echo ${ngrok_url} | cut -d':' -f2)
