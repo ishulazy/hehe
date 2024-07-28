@@ -24,6 +24,6 @@ jobs:
 
     - name: Run Telegram bot
       env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.7290157573:AAHjy56wfC7XspuppiCg2RbwJthfO7oXgxs }}
-        ALLOWED_USER_IDS: ${{ secrets.1214193595 }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        ALLOWED_USER_IDS: ${{ secrets.ALLOWED_USER_IDS }}
       run: python telegram_bot.py
